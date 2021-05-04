@@ -14,6 +14,7 @@ import { Header } from '../components/Header';
 import { EnviromentButton } from '../components/EnviromentButton';
 import { PlantCardPrimary } from '../components/PlantCardPrimary';
 import { Load } from '../components/Load';
+import {Params} from './PlantSave';
  
 import colors from '../styles/colors';
 import fonts from '../styles/fonts';
@@ -92,7 +93,10 @@ export function PlantSelect(){
   }
 
   function handlePlantSelect(plant : PlantProps){
-    navigation.navigate("PlantSave", {plant});
+    navigation.navigate("PlantSave", {
+      plant,
+      pageType: 'save'
+    } as Params);
   }
   
   useEffect(() => {
@@ -112,7 +116,7 @@ export function PlantSelect(){
   return(
     <View style={styles.container}>
       <View style={styles.header}>
-        <Header />
+        <Header pageType="Home" />
 
         <Text style={styles.title}>
           Em qual ambiente

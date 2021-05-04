@@ -11,7 +11,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../styles/colors';
 import fonts from '../styles/fonts';
 
-export function Header(){
+interface HeaderProps {
+  pageType: "Home" | "MyPlants";
+}
+
+export function Header({pageType} : HeaderProps){
   const [userName, setUserName] = useState<string>();
 
   async function loadStorageUserName(){
@@ -25,11 +29,22 @@ export function Header(){
 
   return(
     <View style={styles.container}>
-      <View>
-        <Text style={styles.greeting}>Olá,</Text>
-        <Text style={styles.userName}>{userName}</Text>
-      </View>
-
+      {
+        pageType === "Home" 
+        ? (
+          <View>
+            <Text style={styles.greeting}>Olá,</Text>
+            <Text style={styles.userName}>{userName}</Text>
+          </View>
+        )
+        : (
+          <View>
+            <Text style={styles.greeting}>Minhas</Text>
+            <Text style={styles.userName}>Plantas</Text>
+          </View>
+          )
+      } 
+    
       <Image 
         source={{uri:'https://avatars.githubusercontent.com/u/61480933?v=4'}}
         style={styles.image}

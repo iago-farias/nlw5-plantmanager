@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {SvgFromUri} from 'react-native-svg';
 import {useRoute, useNavigation} from '@react-navigation/native';
 import DateTimePicker, {Event} from '@react-native-community/datetimepicker';
 import { format, isBefore } from 'date-fns';
-import {PlantProps, savePlant, loadPlant} from '../libs/storage';
+import {PlantProps, savePlant} from '../libs/storage';
 
 import { Button } from '../components/Button';
 
@@ -21,8 +21,14 @@ import waterdrop from '../assets/waterdrop.png';
 import colors from '../styles/colors';
 import fonts from '../styles/fonts';
 
-interface Params {
-  plant: PlantProps
+export interface Params {
+  plant: PlantProps,
+  pageType: 'save' | 'edit'
+}
+
+const buttonTitles = {
+  save: 'Cadastrar planta',
+  edit: 'Confirmar alterações'
 }
 
 export function PlantSave(){
@@ -31,7 +37,7 @@ export function PlantSave(){
 
   const route = useRoute();
   const navigation = useNavigation();
-  const {plant} = route.params as Params;
+  const {plant, pageType} = route.params as Params;
 
   function handleChangeTime(event : Event, dateTime: Date | undefined){
     if(Platform.OS === 'android'){
@@ -52,7 +58,7 @@ export function PlantSave(){
     setShowDatePicker(oldState => !oldState);
   }
 
-  async function handleSave(){   
+  async function handleSave(){       
     try{
       await savePlant({
         ...plant,
@@ -66,10 +72,24 @@ export function PlantSave(){
         icon: 'hug',
         nextScreenName: 'PlantSelect'
       });
-    } catch {
-      Alert.alert('Não foi possível salvar. 😥');
+    } catch(err) {
+      Alert.alert('Não foi possível salvar. 😥');     
     }
   }
+
+  async function handleEdit(){
+
+  }
+
+  useEffect(() => {
+    if(plant.hour){
+      const [hour, minute] = plant.hour.split(':');
+      const date = new Date();
+      date.setHours(Number(hour), Number(minute));
+
+      setSelectedDateTime(date);
+    }
+  }, []);
 
   return(
     <ScrollView
@@ -135,8 +155,11 @@ export function PlantSave(){
           }
 
           <Button 
-            title="Cadastrar planta"
-            onPress={handleSave}
+            title={buttonTitles[pageType]}
+            onPress={pageType === 'save' 
+            ? handleSave
+            : handleEdit
+          }
           />
 
         </View>
@@ -202,7 +225,6 @@ const styles = StyleSheet.create({
   tipText:{
     flex: 1,
     marginLeft: 20,
-    textAlign: 'justify',
     fontFamily: fonts.text,
     color: colors.blue,
     fontSize: 17,

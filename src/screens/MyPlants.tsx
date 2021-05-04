@@ -4,13 +4,14 @@ import {
   Text,
   Image,
   FlatList,
-  StyleSheet,
-  Alert,
+  StyleSheet
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 import { Header } from '../components/Header';
 import { Load } from '../components/Load';
 import { PlantCardSecundary } from '../components/PlantCardSecundary';
+import {Params} from './PlantSave';
 
 import waterdrop from '../assets/waterdrop.png';
 import colors from '../styles/colors';
@@ -19,50 +20,68 @@ import fonts from '../styles/fonts';
 import { PlantProps, loadPlant, removePlant } from '../libs/storage';
 import { formatDistance } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { RemovePlantModal } from '../components/RemovePlantModal';
 
 export function MyPlants(){
   const [myPlants, setMyPlants] = useState<PlantProps[]>([]);
   const [loading, setLoading] = useState(true);
   const [nextWatered, setNextWatered] = useState<string>()
+  const [modalIsVisible, setModalIsVisible] = useState(false);
+  const [selectedPlant, setSelectedPlant] = useState<PlantProps>();
+
+  const navigation = useNavigation();
 
   async function loadStorageData(){
     const plantsStoraged = await loadPlant();
+    
+    if(plantsStoraged.length === 0){
+      setLoading(false);
+      return;
+    }
+
+    findNextWatered(plantsStoraged);
+    setMyPlants(plantsStoraged);
+    setLoading(false);
+  }
+
+  async function handleRemove(plant : PlantProps){    
+    await removePlant(plant.id);
+
+    setMyPlants((oldData) => 
+      oldData.filter((item) => item.id !== plant.id)
+    );
+
+    findNextWatered(myPlants);
+    setModalIsVisible(false);
+  }
+  
+  function findNextWatered(plants : PlantProps[]){
+    if(plants.length === 0){
+      setNextWatered(undefined);
+      return;
+    }
 
     const nextTime = formatDistance(
-      new Date(plantsStoraged[0].dateTimeNotification).getTime(),
+      new Date(plants[0].dateTimeNotification).getTime(),
       new Date().getTime(),
       {locale: ptBR}
     );
 
     setNextWatered(
-      `Não esqueça de regar a ${plantsStoraged[0].name} à ${nextTime}.`
+      `Não esqueça de regar a ${plants[0].name} à ${nextTime}.`
     );
-
-    setMyPlants(plantsStoraged);
-    setLoading(false);
   }
 
-  function handleRemove(plant : PlantProps){
-      Alert.alert('Remover', `Deseja remover a ${plant.name}?`,[
-        {
-          text: 'Não 🙏',
-          style: 'cancel'
-        },
-        {
-          text: 'Sim 😥',
-          onPress: async () => {
-            try {
-            await removePlant(plant.id);
-              setMyPlants((oldData) => 
-                oldData.filter((item) => item.id !== plant.id)
-              );
+  function showModal(plant : PlantProps){
+    setSelectedPlant(plant);
+    setModalIsVisible(true);
+  }
 
-            }catch(error) {
-              Alert.alert('Não foi possível remover! 😥');
-            }
-          }
-        }
-      ]);
+  function navigateToEditPlant(plant : PlantProps){
+    navigation.navigate("PlantSave",{
+      plant,
+      pageType: 'edit'
+    } as Params);
   }
 
   useEffect(() => {
@@ -77,17 +96,33 @@ export function MyPlants(){
 
   return(
     <View style={styles.container}>
-      <Header />
+      {
+        selectedPlant && (
+          <RemovePlantModal 
+            isVisible={modalIsVisible}
+            plant={selectedPlant}
+            hideModal={() => setModalIsVisible(false)}
+            handleRemove={() => handleRemove(selectedPlant)}
+          />
+        )
+      }
 
-      <View style={styles.spotlight}>
-        <Image 
-          source={waterdrop}
-          style={styles.spotlightImage}
-        />
-        <Text style={styles.spotlightText}>
-          {nextWatered}
-        </Text>
-      </View>
+      <Header pageType="MyPlants" />
+      
+      {
+        nextWatered && (
+          <View style={styles.spotlight}>
+            <Image 
+              source={waterdrop}
+              style={styles.spotlightImage}
+            />
+          
+            <Text style={styles.spotlightText}>
+              {nextWatered}
+            </Text>
+          </View>
+        )
+      }
 
       <View style={styles.plants}>
         <Text style={styles.plantsTitle}>
@@ -100,14 +135,15 @@ export function MyPlants(){
           renderItem={({item}) => (
             <PlantCardSecundary 
               data={item}
-              handleRemove={() => handleRemove(item)}
+              handleRemove={() => showModal(item)}
+              onPress={() => navigateToEditPlant(item)}
             />
           )}
           showsVerticalScrollIndicator={false}
           style={{flex:1}}
         />
       </View>
-      
+
     </View>
   );
 }
